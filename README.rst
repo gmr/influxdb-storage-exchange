@@ -24,7 +24,8 @@ proper format for InfluxDB. To illustrate this, the following message would be
 published with the ``pageview`` routing key with a ``timestamp`` property of
 ``1397597512``:
 
-..  code-block:: json
+..  code-block:: javascript
+
     {
         "duration": 4.52,
         "uri": "/example",
@@ -34,7 +35,8 @@ published with the ``pageview`` routing key with a ``timestamp`` property of
 
 And will be transformed to the following payload for event submission:
 
-..  code-block:: json
+..  code-block:: javascript
+
     [
         {
             "name": "pageview",
