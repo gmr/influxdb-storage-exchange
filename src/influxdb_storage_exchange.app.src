@@ -1,0 +1,15 @@
+{application, influx_storage_exchange,
+ [
+  {description, "Influx Storage Exchange Plugin"},
+  {vsn, "0.1.0"},
+  {modules, []},
+  {registered, []},
+  {env, [{scheme, <<"http">>},
+         {host, <<"localhost">>},
+         {port, 8086},
+         {dbname, <<"influxdb">>},
+         {password, <<"influxdb">>},
+         {user, <<"rabbitmq">>}]},
+  {applications, [kernel, stdlib, rabbit, ibrowse]}
+ ]
+}.
