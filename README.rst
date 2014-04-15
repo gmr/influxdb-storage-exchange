@@ -68,7 +68,7 @@ that matches the RabbitMQ version you are running:
 +---------+------------+----------+-----------------------+----------------------------------+
 | Version |  Released  | RabbitMQ | Short URL             | MD5 Hash                         |
 +=========+============+==========+=======================+==================================+
-|  0.1.0  |            | v 3.3.0  |                       |  |
+|  0.1.0  |            | v 3.3.0  |                       |                                  |
 +---------+------------+----------+-----------------------+----------------------------------+
 
 The file is a zip file containing both the influxdb-storage-exchange plugin ez file
