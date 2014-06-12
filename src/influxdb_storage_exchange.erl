@@ -59,7 +59,7 @@ recover(_, _) ->
   ok.
 
 remove_bindings(Tx, X, Bs) ->
-  rabbit_exchange_type_topic:remove_binding(Tx, X, Bs).
+  rabbit_exchange_type_topic:remove_bindings(Tx, X, Bs).
 
 route(X, Delivery) ->
   case influxdb_storage_lib:post(X, Delivery) of
