@@ -29,12 +29,14 @@
 -define(DEFAULT_PASSWORD, <<"influxdb">>).
 -define(DEFAULT_DBNAME,   <<"influxdb">>).
 
-post(X, #delivery{message=#basic_message{routing_keys=Keys, content=Content}}) ->
+post(X,
+     #delivery{message=#basic_message{routing_keys=Keys,
+                                      content=Content}}) ->
   Key = list_to_binary(lists:append([binary_to_list(K) || K <- Keys])),
-  P = (Content#content.properties),
-  case P#'P_basic'.content_type of
+  Properties = (Content#content.properties),
+  case Properties#'P_basic'.content_type of
     <<"application/json">> ->
-      case build_json(Key, get_payload(Content), P#'P_basic'.timestamp) of
+      case build_json(Key, get_payload(Content), Properties#'P_basic'.timestamp) of
         {ok, Payload} ->
           case ibrowse:send_req(get_url(X, series),
                                       [{"Content-type", "application/json"}],
@@ -42,9 +44,9 @@ post(X, #delivery{message=#basic_message{routing_keys=Keys, content=Content}}) -
                                       Payload,
                                       [{max_sessions, 10},
                                        {max_pipeline_size, 1}]) of
-            {ok, "200", _, _} -> ok;
+            {ok, "200", _, _}   -> ok;
             {ok, _, _, Content} -> {error, list_to_binary(Content)};
-            {error, Error} -> {error, Error}
+            {error, Error}      -> {error, Error}
           end;
         {error, Error} ->
           rabbit_error:log("influx_storage_exchange ignoring msg: ~p~n", [Error]),
@@ -63,9 +65,9 @@ post(X, #delivery{message=#basic_message{routing_keys=Keys, content=Content}}) -
 %%
 validate(X) ->
   case  ibrowse:send_req(get_url(X, authenticate), [], get) of
-      {ok, "200", _, _} -> ok;
+      {ok, "200", _, _  } -> ok;
       {ok, _, _, Content} -> {error, list_to_binary(Content)};
-      {error, Error} -> {error, Error}
+      {error, {Error, _}} -> {error, Error}
   end.
 
 %% @spec validate_dbname(Value) -> Result
@@ -197,25 +199,6 @@ get_env(EnvVar, DefaultValue) ->
   end.
 
 %% @private
-%% @spec get_url(X, Type) -> list()
-%% @where
-%%       X    = rabbit_types:exchange()
-%%       Type = atom()
-%% @doc Return a properly formatted influxdb URL for the specified type
-%%      (authenticate, series, etc)
-%% @end
-%%
-get_url(X, Type) ->
-  Scheme   = get_param(X, "scheme", ?DEFAULT_SCHEME),
-  Host     = get_param(X, "host", ?DEFAULT_HOST),
-  Port     = get_port(get_param(X, "port", ?DEFAULT_PORT)),
-  User     = get_param(X, "user", ?DEFAULT_USER),
-  Password = get_param(X, "password", ?DEFAULT_PASSWORD),
-  DBName   = get_param(X, "dbname", ?DEFAULT_DBNAME),
-  Scheme ++ "://" ++ Host ++ ":" ++ integer_to_list(Port) ++ "/db/" ++ DBName
-    ++ "/" ++ atom_to_list(Type) ++ "?u=" ++ User ++ "&p=" ++ Password.
-
-%% @private
 %% @spec get_parm(X, Name, DefaultValue) -> Value
 %% @where
 %%       X            = rabbit_types:exchange()
@@ -308,6 +291,48 @@ get_port(Value) when is_list(Value) ->
   list_to_integer(Value);
 get_port(Value) when is_number(Value) ->
   Value.
+
+%% @private
+%% @spec get_url(X, Type) -> list()
+%% @where
+%%       X    = rabbit_types:exchange()
+%%       Type = atom()
+%% @doc Return a properly formatted influxdb URL for the specified type
+%%      (authenticate, series, etc)
+%% @end
+%%
+get_url(X, Type) ->
+  Scheme   = get_param(X, "scheme", ?DEFAULT_SCHEME),
+  Host     = get_param(X, "host", ?DEFAULT_HOST),
+  Port     = get_port(get_param(X, "port", ?DEFAULT_PORT)),
+  User     = get_param(X, "user", ?DEFAULT_USER),
+  Password = get_param(X, "password", ?DEFAULT_PASSWORD),
+  DBName   = get_param(X, "dbname", ?DEFAULT_DBNAME),
+
+  case Scheme of
+    "https" ->
+      maybe_start_ssl();
+    _ -> ok
+  end,
+
+  Scheme ++ "://" ++ Host ++ ":" ++ integer_to_list(Port) ++ "/db/" ++ DBName
+    ++ "/" ++ atom_to_list(Type) ++ "?u=" ++ User ++ "&p=" ++ Password.
+
+%% @private
+%% @spec maybe_start_ssl() -> Result
+%% @where
+%%       Result = ok|error
+%% @doc Ensure that SSL is started
+%% @end
+%%
+maybe_start_ssl() ->
+  case ssl:start() of
+    ok -> ok;
+    {error,{already_started,ssl}} -> ok;
+    {error, Error} ->
+      rabbit_log:error("Error starting SSL: ~p~n:", [Error]),
+      error
+  end.
 
 %% @private
 %% @spec validate_binary_or_none(Name, Value) -> Result
