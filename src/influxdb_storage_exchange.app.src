@@ -1,7 +1,7 @@
-{application, influx_storage_exchange,
+{application, influxdb_storage_exchange,
  [
-  {description, "Influx Storage Exchange Plugin"},
-  {vsn, "0.1.0"},
+  {description, "InfluxDB Storage Exchange Plugin"},
+  {vsn, "0.1.1"},
   {modules, []},
   {registered, []},
   {env, [{scheme, <<"http">>},
