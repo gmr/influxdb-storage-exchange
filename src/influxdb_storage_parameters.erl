@@ -9,48 +9,36 @@
 
 -module(influxdb_storage_parameters).
 
--behaviour(rabbit_runtime_parameter).
 -behaviour(rabbit_policy_validator).
 
 -export([register/0,
-         notify/4,
-         notify_clear/3,
-         validate/4,
+         unregister/0,
          validate_policy/1]).
+
+-define(RUNTIME_PARAMETERS,
+        [{policy_validator,  <<"influxdb-scheme">>},
+         {policy_validator,  <<"influxdb-host">>},
+         {policy_validator,  <<"influxdb-port">>},
+         {policy_validator,  <<"influxdb-dbname">>},
+         {policy_validator,  <<"influxdb-user">>},
+         {policy_validator,  <<"influxdb-password">>}]).
 
 -rabbit_boot_step({?MODULE,
                    [{description, "influxdb_storage_exchange parameters"},
                     {mfa, {?MODULE, register, []}},
                     {requires, rabbit_registry},
+                    {cleanup, {?MODULE, unregister, []}},
                     {enables, recovery}]}).
 
 register() ->
   [rabbit_registry:register(Class, Name, ?MODULE) ||
-      {Class, Name} <- [{runtime_parameter, <<"influxdb-scheme">>},
-                        {runtime_parameter, <<"influxdb-host">>},
-                        {runtime_parameter, <<"influxdb-port">>},
-                        {runtime_parameter, <<"influxdb-dbname">>},
-                        {runtime_parameter, <<"influxdb-user">>},
-                        {runtime_parameter, <<"influxdb-password">>},
-                        {policy_validator,  <<"influxdb-scheme">>},
-                        {policy_validator,  <<"influxdb-host">>},
-                        {policy_validator,  <<"influxdb-port">>},
-                        {policy_validator,  <<"influxdb-dbname">>},
-                        {policy_validator,  <<"influxdb-user">>},
-                        {policy_validator,  <<"influxdb-password">>}]],
+      {Class, Name} <- ?RUNTIME_PARAMETERS],
   ok.
 
-notify(VHost, What, Name, Term) ->
-  rabbit_log:info("notify: ~s,~s,~s,~s~n", [VHost, What, Name, Term]),
-  rabbit_policy:notify(VHost, What, Name, Term).
-
-notify_clear(VHost, What, Name) ->
-  rabbit_log:info("notify_clear: ~s,~s,~s~n", [VHost, What, Name]),
-  rabbit_policy:notify_clear(VHost, What, Name).
-
-validate(VHost, What, Name, Term) ->
-  rabbit_log:info("Validating ~s,~s,~s,~s~n", [VHost, What,Name, Term]),
-  rabbit_policy:validate(VHost, <<"policy">>, Name, Term).
+unregister() ->
+    [rabbit_registry:unregister(Class, Name) ||
+        {Class, Name} <- ?RUNTIME_PARAMETERS],
+    ok.
 
 validate_policy(KeyList) ->
   Scheme   = proplists:get_value(<<"influxdb-scheme">>, KeyList, none),
