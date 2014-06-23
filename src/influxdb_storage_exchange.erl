@@ -18,6 +18,8 @@
                   [{description, ?X_DESC},
                    {mfa,         {rabbit_registry, register,
                                   [exchange, ?X_TYPE, ?MODULE]}},
+                   {cleanup,     {rabbit_registry, unregister,
+                                  [exchange, ?X_TYPE]}},
                    {requires,    rabbit_registry},
                    {enables,     recovery}]}).
 
