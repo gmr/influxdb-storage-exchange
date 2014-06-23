@@ -21,8 +21,8 @@ will  store every message it is able to in InfluxDB.
 The name of the event will be taken from the routing key that the message is
 published with. The exchange will transform flat JSON event payloads to the
 proper format for InfluxDB. To illustrate this, the following message would be
-published with the ``pageview`` routing key with a ``timestamp`` property of
-``1397597512``:
+published with the ``pageview`` routing key, a ``content-type`` property of
+``application/json`` and a ``timestamp`` property of ``1397597512``:
 
 ..  code-block:: javascript
 
@@ -68,7 +68,7 @@ that matches the RabbitMQ version you are running:
 +---------+------------+----------+-----------------------+----------------------------------+
 | Version |  Released  | RabbitMQ | Short URL             | MD5 Hash                         |
 +=========+============+==========+=======================+==================================+
-|  0.1.0  |            | v 3.3.0  |                       |                                  |
+|  0.1.0  | 2014-06-23 | v 3.3.x  |                       |                                  |
 +---------+------------+----------+-----------------------+----------------------------------+
 
 The file is a zip file containing both the influxdb-storage-exchange plugin ez file
@@ -95,41 +95,41 @@ To subit metrics to InfluxDB using something other than the default URI of
 ``http://localhost:8086/db/influxdb?u=rabbitmq&p=influxdb``, you can
 add arguments when declaring the exchange:
 
-+--------------+--------------------------------------+-----------+
-| Setting      | Description                          | Data Type |
-+==============+======================================+===========+
-| x-scheme     | The protocol scheme to use (HTTP)    | String    |
-+--------------+--------------------------------------+-----------+
-| x-host       | The InfluxDB server hostname         | String    |
-+--------------+--------------------------------------+-----------+
-| x-port       | The port to connect on               | Number    |
-+--------------+--------------------------------------+-----------+
-| x-dbname     | The database name to connect to      | String    |
-+--------------+--------------------------------------+-----------+
-| x-user       | The user to connect as               | String    |
-+--------------+--------------------------------------+-----------+
-| x-password   | The password to use when connecting  | String    |
-+--------------+--------------------------------------+-----------+
++--------------+-----------------------------------------+-----------+
+| Setting      | Description                             | Data Type |
++==============+=========================================+===========+
+| x-scheme     | The protocol scheme to use (HTTP|HTTPS) | String    |
++--------------+----------------------------------------+-----------+
+| x-host       | The InfluxDB server hostname            | String    |
++--------------+-----------------------------------------+-----------+
+| x-port       | The port to connect on                  | Number    |
++--------------+-----------------------------------------+-----------+
+| x-dbname     | The database name to connect to         | String    |
++--------------+-----------------------------------------+-----------+
+| x-user       | The user to connect as                  | String    |
++--------------+-----------------------------------------+-----------+
+| x-password   | The password to use when connecting     | String    |
++--------------+-----------------------------------------+-----------+
 
 **Policy Based Configuration**
 
 To apply configuration via a policy, the following settings are available:
 
-+-------------------------+--------------------------------------+-----------+
-| Setting                 | Description                          | Data Type |
-+=========================+======================================+===========+
-| influxdb-scheme         | The protocol scheme to use (HTTP)    | String    |
-+-------------------------+--------------------------------------+-----------+
-| influxdb-host           | The InfluxDB server hostname         | String    |
-+-------------------------+--------------------------------------+-----------+
-| influxdb-port           | The port to connect on               | Number    |
-+-------------------------+--------------------------------------+-----------+
-| influxdb-dbname         | The database name to connect to      | String    |
-+-------------------------+--------------------------------------+-----------+
-| influxdb-user           | The user to connect as               | String    |
-+-------------------------+--------------------------------------+-----------+
-| influxdb-password       | The password to use when connecting  | String    |
-+-------------------------+--------------------------------------+-----------+
++-------------------------+-----------------------------------------+-----------+
+| Setting                 | Description                             | Data Type |
++=========================+=========================================+===========+
+| influxdb-scheme         | The protocol scheme to use (HTTP|HTTPS) | String    |
++-------------------------+-----------------------------------------+-----------+
+| influxdb-host           | The InfluxDB server hostname            | String    |
++-------------------------+-----------------------------------------+-----------+
+| influxdb-port           | The port to connect on                  | Number    |
++-------------------------+-----------------------------------------+-----------+
+| influxdb-dbname         | The database name to connect to         | String    |
++-------------------------+-----------------------------------------+-----------+
+| influxdb-user           | The user to connect as                  | String    |
++-------------------------+-----------------------------------------+-----------+
+| influxdb-password       | The password to use when connecting     | String    |
++-------------------------+-----------------------------------------+-----------+
 
 
 **Configuration in rabbitmq.config**
@@ -176,7 +176,7 @@ Steps to custom build a version of the influx-storage exchange plugin:
     hg clone http://hg.rabbitmq.com/rabbitmq-public-umbrella
     cd rabbitmq-public-umbrella
     make co
-    make BRANCH=rabbitmq_v3_3_0 up_c
+    make BRANCH=rabbitmq_v3_3_3 up_c
     git clone https://github.com/gmr/ibrowse-wrapper.git
     git clone https://github.com/aweber/influxdb-storage-exchange.git
     cd influxdb-storage-exchange
