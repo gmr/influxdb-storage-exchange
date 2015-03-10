@@ -167,6 +167,11 @@ You can also change the default connection values in the ``rabbitmq.config`` fil
       ]}
     ].
 
+>> With rabbitmq-server 3.2 Configure the influxdb storage exhange like this 
+ [{influxdb_storage_exchange, 
+ [{scheme, "http"}, {host, "10.11.0.21"}, {port, 8086}, {dbname, "metrics"}, {user, "rabbitmq"}, {password, "rabbitmq"}]}
+].
+
 Building
 --------
 Steps to custom build a version of the influx-storage exchange plugin:
