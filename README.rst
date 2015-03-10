@@ -152,7 +152,7 @@ You can also change the default connection values in the ``rabbitmq.config`` fil
 | password     | The password to use when connecting  | list      | "influxdb"    |
 +--------------+--------------------------------------+-----------+---------------+
 
-*Exaple rabbitmq.config*
+*Example rabbitmq.config*
 
 ..  code-block:: erlang
 
@@ -166,6 +166,12 @@ You can also change the default connection values in the ``rabbitmq.config`` fil
         {password: "influxdb"},
       ]}
     ].
+    
+for rabbitmq server 3.2, Configure the influxdb storage exchange like this
+..  code-block:: erlang
+[{influxdb_storage_exchange, 
+ [{scheme, "http"}, {host, "localhost"}, {port, 8086}, {dbname, "rabbitmq"}, {user, "rabbitmq"}, {password, "influxdb"}]}
+].
 
 Building
 --------
