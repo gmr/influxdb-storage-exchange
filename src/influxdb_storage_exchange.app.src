@@ -1,15 +1,16 @@
 {application, influxdb_storage_exchange,
  [
   {description, "InfluxDB Storage Exchange Plugin"},
-  {vsn, "0.1.1"},
+  {vsn, "0.2.0"},
   {modules, []},
   {registered, []},
-  {env, [{scheme, <<"http">>},
-         {host, <<"localhost">>},
+  {env, [{scheme, "http"},
+         {host, "localhost"},
          {port, 8086},
-         {dbname, <<"influxdb">>},
-         {password, <<"influxdb">>},
-         {user, <<"rabbitmq">>}]},
-  {applications, [kernel, stdlib, rabbit, ibrowse]}
+         {dbname, "influxdb"},
+         {password, "influxdb"},
+         {user, "rabbitmq"},
+         {mime_match, true}]},
+  {applications, [kernel, stdlib, ssl, rabbit, gun]}
  ]
 }.

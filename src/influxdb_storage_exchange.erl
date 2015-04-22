@@ -44,51 +44,55 @@ add_binding(Tx, X, B) ->
 assert_args_equivalence(X, Args) ->
   rabbit_exchange:assert_args_equivalence(X, Args).
 
-create(_, _) ->
-  ok.
+create(Tx, X) ->
+  rabbit_exchange_type_topic:create(Tx, X).
+
+delete(Tx, X, Bs) ->
+  gen_server_call({delete, X, Bs}),
+  rabbit_exchange_type_topic:delete(Tx, X, Bs).
 
 description() ->
-  [{name, ?X_TYPE},
-   {description, ?X_DESC}].
+  [{name, ?X_TYPE}, {description, ?X_DESC}].
 
-delete(_, _, _) ->
+policy_changed(OldX, _NewX) ->
+  gen_server_call({delete, OldX, []}),
   ok.
 
-policy_changed(_, _) ->
-  ok.
-
-recover(_, _) ->
-  ok.
+recover(Tx, X) ->
+  rabbit_exchange_type_topic:recover(Tx, X).
 
 remove_bindings(Tx, X, Bs) ->
   rabbit_exchange_type_topic:remove_bindings(Tx, X, Bs).
 
 route(X, Delivery) ->
-  case influxdb_storage_lib:post(X, Delivery) of
-    ok ->
-      rabbit_exchange_type_topic:route(X, Delivery);
-    ignored ->
-      rabbit_exchange_type_topic:route(X, Delivery);
-    {error, Error} ->
-      protocol_error(no_route, "post error: ~s", Error)
-  end.
+  gen_server_call({route, X, Delivery}),
+  rabbit_exchange_type_topic:route(X, Delivery).
 
 serialise_events() ->
   false.
 
 validate(X) ->
-  case influxdb_storage_lib:validate(X) of
-    ok ->
-      ok;
-    {error, Error} ->
-      protocol_error(resource_error, "validation failure: ~s", Error)
-  end.
+  gen_server_call({validate, X}).
 
-validate_binding(_, _) ->
-  ok.
+validate_binding(X, B) ->
+  rabbit_exchange_type_topic:validate_binding(X, B).
 
 %% @private
-protocol_error(Type, Message, Error) ->
-  rabbit_misc:protocol_error(Type,
-                             list_to_binary(binary_to_list(?X_TYPE) ++ " " ++ Message),
-                             [Error]).
+%% @spec get_server_call(Args) -> Reply
+%% @where
+%%       Name         = list()
+%%       DefaultValue = mixed
+%%       Reply        = ok|{error, Reason}
+%% @doc Wrap the gen_server:call behavior to shutdown the channel with an
+%%      exception if an error bubbles up from the worker.
+%% @end
+%%
+gen_server_call(Args) ->
+  case gen_server:call(redis_storage_worker, Args) of
+    ok -> ok;
+    {error, Reason} ->
+      rabbit_misc:protocol_error(resource_error,
+                                 "influxdb_storage_worker failure (~p)",
+                                 [Reason]),
+      error
+  end.
