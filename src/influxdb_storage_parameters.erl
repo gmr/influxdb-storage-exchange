@@ -1,6 +1,6 @@
 %%==============================================================================
 %% @author Gavin M. Roy <gavinr@aweber.com>
-%% @copyright 2014 AWeber Communications
+%% @copyright 2014-2015 AWeber Communications
 %% @end
 %%==============================================================================
 
@@ -21,7 +21,8 @@
          {policy_validator,  <<"influxdb-port">>},
          {policy_validator,  <<"influxdb-dbname">>},
          {policy_validator,  <<"influxdb-user">>},
-         {policy_validator,  <<"influxdb-password">>}]).
+         {policy_validator,  <<"influxdb-password">>},
+         {policy_validator,  <<"influxdb-mime-match">>}]).
 
 -rabbit_boot_step({?MODULE,
                    [{description, "influxdb_storage_exchange parameters"},
@@ -47,18 +48,21 @@ validate_policy(KeyList) ->
   DBName   = proplists:get_value(<<"influxdb-dbname">>, KeyList, none),
   User     = proplists:get_value(<<"influxdb-user">>, KeyList, none),
   Password = proplists:get_value(<<"influxdb-password">>, KeyList, none),
+  Mime = proplists:get_value(<<"influxdb-mime-match">>, KeyList, none),
   Validation = [influxdb_storage_lib:validate_scheme(Scheme),
                 influxdb_storage_lib:validate_host(Host),
                 influxdb_storage_lib:validate_port(Port),
                 influxdb_storage_lib:validate_dbname(DBName),
                 influxdb_storage_lib:validate_user(User),
-                influxdb_storage_lib:validate_password(Password)],
+                influxdb_storage_lib:validate_password(Password),
+                influxdb_storage_lib:validate_mime_match(Mime)],
   case Validation of
-    [ok, ok, ok, ok, ok, ok]                   -> ok;
-    [{error, Error, Args}, _, _, _, _, _]      -> {error, Error, Args};
-    [ok, {error, Error, Args}, _, _, _, _]     -> {error, Error, Args};
-    [ok, ok, {error, Error, Args}, _, _, _]    -> {error, Error, Args};
-    [ok, ok, ok, {error, Error, Args}, _, _]   -> {error, Error, Args};
-    [ok, ok, ok, ok, {error, Error, Args}, _]  -> {error, Error, Args};
-    [ok, ok, ok, ok, ok, {error, Error, Args}] -> {error, Error, Args}
+    [ok, ok, ok, ok, ok, ok, ok]                   -> ok;
+    [{error, Error}, _, _, _, _, _, _]       -> {error, Error, []};
+    [ok, {error, Error}, _, _, _, _, _]      -> {error, Error, []};
+    [ok, ok, {error, Error}, _, _, _, _]     -> {error, Error, []};
+    [ok, ok, ok, {error, Error}, _, _, _]    -> {error, Error, []};
+    [ok, ok, ok, ok, {error, Error}, _, _]   -> {error, Error, []};
+    [ok, ok, ok, ok, ok, {error, Error}, _]  -> {error, Error, []};
+    [ok, ok, ok, ok, ok, ok, {error, Error}] -> {error, Error, []}
   end.
