@@ -57,7 +57,7 @@ validate_policy(KeyList) ->
                 influxdb_storage_lib:validate_password(Password),
                 influxdb_storage_lib:validate_mime_match(Mime)],
   case Validation of
-    [ok, ok, ok, ok, ok, ok, ok]                   -> ok;
+    [ok, ok, ok, ok, ok, ok, ok]             -> ok;
     [{error, Error}, _, _, _, _, _, _]       -> {error, Error, []};
     [ok, {error, Error}, _, _, _, _, _]      -> {error, Error, []};
     [ok, ok, {error, Error}, _, _, _, _]     -> {error, Error, []};
