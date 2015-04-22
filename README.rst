@@ -84,7 +84,7 @@ extracted, run ``rabbitmq-plugins enable influxdb_storage_exchange``.
 Configuration
 -------------
 Configuration for submitting metrics to InfluxDB can be configured when
-declaring the exchange, via policy, or via the rabbitmq.config configuration
+declaring the exchange, via policy, or via the ``rabbitmq.config`` configuration
 file. If no configuration is provided, a default URL of
 ``http://localhost:8086/db/influxdb?u=rabbitmq&p=influxdb`` will be used for
 submitting metrics.
@@ -95,62 +95,67 @@ To subit metrics to InfluxDB using something other than the default URI of
 ``http://localhost:8086/db/influxdb?u=rabbitmq&p=influxdb``, you can
 add arguments when declaring the exchange:
 
-+--------------+-----------------------------------------+-----------+
-| Setting      | Description                             | Data Type |
-+==============+=========================================+===========+
-| x-scheme     | The protocol scheme to use (HTTP|HTTPS) | String    |
-+--------------+----------------------------------------+-----------+
-| x-host       | The InfluxDB server hostname            | String    |
-+--------------+-----------------------------------------+-----------+
-| x-port       | The port to connect on                  | Number    |
-+--------------+-----------------------------------------+-----------+
-| x-dbname     | The database name to connect to         | String    |
-+--------------+-----------------------------------------+-----------+
-| x-user       | The user to connect as                  | String    |
-+--------------+-----------------------------------------+-----------+
-| x-password   | The password to use when connecting     | String    |
-+--------------+-----------------------------------------+-----------+
++--------------+-------------------------------------------------+-----------+
+| Setting      | Description                                     | Data Type |
++==============+=================================================+===========+
+| x-scheme     | The protocol scheme to use (HTTP|HTTPS)         | String    |
++--------------+-------------------------------------------------+-----------+
+| x-host       | The InfluxDB server hostname                    | String    |
++--------------+-------------------------------------------------+-----------+
+| x-port       | The port to connect on                          | Number    |
++--------------+-------------------------------------------------+-----------+
+| x-dbname     | The database name to connect to                 | String    |
++--------------+-------------------------------------------------+-----------+
+| x-user       | The user to connect as                          | String    |
++--------------+-------------------------------------------------+-----------+
+| x-password   | The password to use when connecting             | String    |
++--------------+-------------------------------------------------+-----------+
+| x-mime-match | Explicitly match ``application/json`` mime type | Boolean   |
++--------------+-------------------------------------------------+-----------+
 
 **Policy Based Configuration**
 
 To apply configuration via a policy, the following settings are available:
 
-+-------------------------+-----------------------------------------+-----------+
-| Setting                 | Description                             | Data Type |
-+=========================+=========================================+===========+
-| influxdb-scheme         | The protocol scheme to use (HTTP|HTTPS) | String    |
-+-------------------------+-----------------------------------------+-----------+
-| influxdb-host           | The InfluxDB server hostname            | String    |
-+-------------------------+-----------------------------------------+-----------+
-| influxdb-port           | The port to connect on                  | Number    |
-+-------------------------+-----------------------------------------+-----------+
-| influxdb-dbname         | The database name to connect to         | String    |
-+-------------------------+-----------------------------------------+-----------+
-| influxdb-user           | The user to connect as                  | String    |
-+-------------------------+-----------------------------------------+-----------+
-| influxdb-password       | The password to use when connecting     | String    |
-+-------------------------+-----------------------------------------+-----------+
-
++---------------------+-------------------------------------------------+-----------+
+| Setting             | Description                                     | Data Type |
++=====================+=================================================+===========+
+| influxdb-scheme     | The protocol scheme to use (HTTP|HTTPS)         | String    |
++---------------------+-------------------------------------------------+-----------+
+| influxdb-host       | The InfluxDB server hostname                    | String    |
++---------------------+-------------------------------------------------+-----------+
+| influxdb-port       | The port to connect on                          | Number    |
++---------------------+-------------------------------------------------+-----------+
+| influxdb-dbname     | The database name to connect to                 | String    |
++---------------------+-------------------------------------------------+-----------+
+| influxdb-user       | The user to connect as                          | String    |
++---------------------+-------------------------------------------------+-----------+
+| influxdb-password   | The password to use when connecting             | String    |
++---------------------+-------------------------------------------------+-----------+
+| influxdb-mime-match | Explicitly match ``application/json`` mime type | Boolean   |
++---------------------+-------------------------------------------------+-----------+
 
 **Configuration in rabbitmq.config**
 
 You can also change the default connection values in the ``rabbitmq.config`` file:
 
-+--------------+--------------------------------------+-----------+---------------+
-| Setting      | Description                          | Data Type | Default Value |
-+==============+======================================+===========+===============+
-| scheme       | The protocol scheme to use           | list      | "http"        |
-+--------------+--------------------------------------+-----------+---------------+
-| host         | The InfluxDB server hostname         | list      | "localhost"   |
-+--------------+--------------------------------------+-----------+---------------+
-| port         | The port to connect on               | integer   | 8086          |
-+--------------+--------------------------------------+-----------+---------------+
-| dbname       | The database name to connect to      | list      | "influxdb"    |
-+--------------+--------------------------------------+-----------+---------------+
-| user         | The user to connect as               | list      | "rabbitmq"    |
-+--------------+--------------------------------------+-----------+---------------+
-| password     | The password to use when connecting  | list      | "influxdb"    |
-+--------------+--------------------------------------+-----------+---------------+
++--------------+-------------------------------------------------+-----------+---------------+
+| Setting      | Description                                     | Data Type | Default Value |
++==============+=================================================+===========+===============+
+| scheme       | The protocol scheme to use                      | list      | ``http``      |
++--------------+-------------------------------------------------+-----------+---------------+
+| host         | The InfluxDB server hostname                    | list      | ``localhost`` |
++--------------+-------------------------------------------------+-----------+---------------+
+| port         | The port to connect on                          | integer   | ``8086``      |
++--------------+-------------------------------------------------+-----------+---------------+
+| dbname       | The database name to connect to                 | list      | ``influxdb``  |
++--------------+-------------------------------------------------+-----------+---------------+
+| user         | The user to connect as                          | list      | ``rabbitmq``  |
++--------------+-------------------------------------------------+-----------+---------------+
+| password     | The password to use when connecting             | list      | ``influxdb``  |
++--------------+-------------------------------------------------+-----------+---------------+
+| mime_match   | Explicitly match ``application/json`` mime type | boolean   | ``true``      |
++--------------+-------------------------------------------------+-----------+---------------+
 
 *Example rabbitmq.config*
 
@@ -164,6 +169,7 @@ You can also change the default connection values in the ``rabbitmq.config`` fil
         {dbname: "rabbitmq"},
         {user: "rabbitmq"},
         {password: "influxdb"},
+        {mime_match: false}
       ]}
     ].
 
@@ -173,11 +179,11 @@ Steps to custom build a version of the influx-storage exchange plugin:
 
 .. code-block:: bash
 
-    hg clone http://hg.rabbitmq.com/rabbitmq-public-umbrella
+    git clone https://github.com/rabbitmq/rabbitmq-public-umbrella
     cd rabbitmq-public-umbrella
     make co
-    make BRANCH=rabbitmq_v3_3_3 up_c
-    git clone https://github.com/gmr/ibrowse-wrapper.git
+    make BRANCH=rabbitmq_v3_5_1 up_c
+    git clone https://github.com/gmr/gun-wrapper.git
     git clone https://github.com/aweber/influxdb-storage-exchange.git
     cd influxdb-storage-exchange
     make
