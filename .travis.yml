@@ -8,11 +8,9 @@ before_install:
 install:
 - sudo apt-get update -qq
 - sudo apt-get install -qq -y xsltproc
-script: cd $BUILD_DIR/gun-wrapper && make test
-after_script:
-- rm -rf $BUILD_DIR/gun-wrapper
+script: cd $BUILD_DIR/influxdb-storage-exchange && make test
 before_deploy:
-- cd $BUILD_DIR/gun-wrapper
+- cd $BUILD_DIR/influxdb-storage-exchange
 - VERSION=$RMQ_VERSION make
 cache:
   apt: true
