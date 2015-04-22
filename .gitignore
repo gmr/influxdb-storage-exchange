@@ -2,3 +2,5 @@
 build
 dist
 ebin
+.idea
+erl_crash.dump
