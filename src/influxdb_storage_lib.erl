@@ -1,6 +1,6 @@
 %%==============================================================================
 %% @author Gavin M. Roy <gavinr@aweber.com>
-%% @copyright 2014 AWeber Communications
+%% @copyright 2014-2015 AWeber Communications
 %% @end
 %%==============================================================================
 
@@ -14,20 +14,32 @@
 -include_lib("rabbit_common/include/rabbit_framing.hrl").
 
 -export([post/2,
-         validate/1,
-         validate_host/1,
-         validate_port/1,
-         validate_dbname/1,
-         validate_user/1,
-         validate_scheme/1,
-         validate_password/1]).
+         validate/1]).
 
--define(DEFAULT_SCHEME,   <<"http">>).
--define(DEFAULT_HOST,     <<"localhost">>).
+-export([build_json/3,
+         get_env/2,
+         get_param/3,
+         get_param_env_value/2,
+         get_param_list_value/1,
+         get_param_value/3,
+         get_payload/1,
+         get_port/1,
+         get_url/2,
+         validate_dbname/1,
+         validate_host/1,
+         validate_string_or_none/2,
+         validate_mime_match/1,
+         validate_scheme/1,
+         validate_password/1,
+         validate_port/1,
+         validate_user/1]).
+
+-define(DEFAULT_SCHEME,   "http").
+-define(DEFAULT_HOST,     "localhost").
 -define(DEFAULT_PORT,     8086).
--define(DEFAULT_USER,     <<"rabbitmq">>).
--define(DEFAULT_PASSWORD, <<"influxdb">>).
--define(DEFAULT_DBNAME,   <<"influxdb">>).
+-define(DEFAULT_USER,     "rabbitmq").
+-define(DEFAULT_PASSWORD, "influxdb").
+-define(DEFAULT_DBNAME,   "influxdb").
 
 post(X,
      #delivery{message=#basic_message{routing_keys=Keys,
@@ -72,27 +84,37 @@ validate(X) ->
 
 %% @spec validate_dbname(Value) -> Result
 %% @where
-%%       Value  = binary()|none
+%%       Value  = binary()|list()|none
 %%       Result = ok|{error, Error}
 %% @doc Validate the user specified dbname is a binary value or none
 %% @end
 %%
-validate_dbname(none) ->
-  ok;
+validate_dbname(none) -> ok;
 validate_dbname(Value) ->
-  validate_binary_or_none("influxdb-dbname", Value).
+  validate_string_or_none("influxdb-dbname", Value).
 
 %% @spec validate_host(Value) -> Result
 %% @where
-%%       Value  = binary()|none
+%%       Value  = binary()|list()|none
 %%       Result = ok|{error, Error}
 %% @doc Validate the user specified hostname is a binary or none
 %% @end
 %%
-validate_host(none) ->
-  ok;
+validate_host(none) -> ok;
 validate_host(Value) ->
-  validate_binary_or_none("influxdb-host", Value).
+  validate_string_or_none("influxdb-host", Value).
+
+%% @spec validate_mime_match(Value) -> Result
+%% @where
+%%       Value  = atom()|none
+%%       Result = ok|{error, Error}
+%% @doc Validate the user specified mime-match value is true/false/none
+%% @end
+%%
+validate_mime_match(none) -> ok;
+validate_mime_match(false) -> ok;
+validate_mime_match(true) -> ok;
+validate_mime_match(_) -> {error, "influxdb-mime-match should be a boolean"}.
 
 %% @spec validate_password(Value) -> Result
 %% @where
@@ -101,10 +123,9 @@ validate_host(Value) ->
 %% @doc Validate the user specified password is a binary or none
 %% @end
 %%
-validate_password(none) ->
-  ok;
+validate_password(none) -> ok;
 validate_password(Value) ->
-  validate_binary_or_none("influxdb-password", Value).
+  validate_string_or_none("influxdb-password", Value).
 
 %% @spec validate_port(Value) -> Result
 %% @where
@@ -113,36 +134,31 @@ validate_password(Value) ->
 %% @doc Validate the user specified port is an integer value or none
 %% @end
 %%
-validate_port(none) ->
-  ok;
-validate_port(Value) when is_number(Value) ->
-  ok;
-validate_port(Value) ->
-  {error, "influxdb-port should be a number, actually was ~p", [Value]}.
+validate_port(none) -> ok;
+validate_port(Value) when is_number(Value) -> ok;
+validate_port(_) -> {error, "influxdb-port should be an integer"}.
 
 %% @spec validate_scheme(Value) -> Result
 %% @where
-%%       Value  = binary()|none
+%%       Value  = list()|binary()|none
 %%       Result = ok|{error, Error}
 %% @doc Validate the protocol scheme specified user is a binary value or none
 %% @end
 %%
-validate_scheme(none) ->
-  ok;
+validate_scheme(none) -> ok;
 validate_scheme(Value) ->
-  validate_binary_or_none("influxdb-scheme", Value).
+  validate_string_or_none("influxdb-scheme", Value).
 
 %% @spec validate_user(Value) -> Result
 %% @where
-%%       Value  = binary()|none
+%%       Value  = list()|binary()|none
 %%       Result = ok|{error, Error}
 %% @doc Validate the user specified user is a binary value or none
 %% @end
 %%
-validate_user(none) ->
-  ok;
+validate_user(none) -> ok;
 validate_user(Value) ->
-  validate_binary_or_none("influxdb-user", Value).
+  validate_string_or_none("influxdb-user", Value).
 
 %% ---------------
 %% Private Methods
@@ -213,6 +229,10 @@ get_env(EnvVar, DefaultValue) ->
 %%
 get_param(X, Name, DefaultValue) when is_atom(Name) ->
   get_param(X, atom_to_list(Name), DefaultValue);
+
+get_param(#exchange{arguments=Args, policy=Policy}, Name, DefaultValue) when Policy =:= undefined ->
+    get_param_value(Args, Name, DefaultValue);
+
 get_param(X=#exchange{arguments=Args}, Name, DefaultValue) when is_list(Name) ->
   case rabbit_policy:get(list_to_binary("influxdb-" ++ Name), X) of
     undefined -> get_param_value(Args, Name, DefaultValue);
@@ -287,10 +307,8 @@ get_payload(#content{payload_fragments_rev=Payload}) ->
 %% if it is an integer
 %% @end
 %%
-get_port(Value) when is_list(Value) ->
-  list_to_integer(Value);
-get_port(Value) when is_number(Value) ->
-  Value.
+get_port(Value) when is_list(Value) -> list_to_integer(Value);
+get_port(Value) when is_number(Value) -> Value.
 
 %% @private
 %% @spec get_url(X, Type) -> list()
@@ -308,44 +326,20 @@ get_url(X, Type) ->
   User     = get_param(X, "user", ?DEFAULT_USER),
   Password = get_param(X, "password", ?DEFAULT_PASSWORD),
   DBName   = get_param(X, "dbname", ?DEFAULT_DBNAME),
-
-  case Scheme of
-    "https" ->
-      maybe_start_ssl();
-    _ -> ok
-  end,
-
   Scheme ++ "://" ++ Host ++ ":" ++ integer_to_list(Port) ++ "/db/" ++ DBName
     ++ "/" ++ atom_to_list(Type) ++ "?u=" ++ User ++ "&p=" ++ Password.
 
 %% @private
-%% @spec maybe_start_ssl() -> Result
+%% @spec validate_string_or_none(Name, Value) -> Result
+%% @doc Validate the user specified value is a list() or none
 %% @where
-%%       Result = ok|error
-%% @doc Ensure that SSL is started
-%% @end
-%%
-maybe_start_ssl() ->
-  case ssl:start() of
-    ok -> ok;
-    {error,{already_started,ssl}} -> ok;
-    {error, Error} ->
-      rabbit_log:error("Error starting SSL: ~p~n:", [Error]),
-      error
-  end.
-
-%% @private
-%% @spec validate_binary_or_none(Name, Value) -> Result
-%% @doc Validate the user specified value is a binary() or none
-%% @where
-%%       Name   = list()
-%%       Value  = binary()|none
+%%       Name   = binary()|list()
+%%       Value  = list()|none
 %%       Result = ok|{error, Error}
 %% @end
 %%
-validate_binary_or_none(_, none) ->
-  ok;
-validate_binary_or_none(_, Value) when is_binary(Value) ->
-  ok;
-validate_binary_or_none(Name, Value) ->
-  {error, "~s should be binary, actually was ~p", [Name, Value]}.
+validate_string_or_none(_, none) -> ok;
+validate_string_or_none(_, Value) when is_binary(Value) -> ok;
+validate_string_or_none(_, Value) when is_list(Value) -> ok;
+validate_string_or_none(Name, _) ->
+    {error, lists:flatten(io_lib:format("~s should be a string", [Name]))}.
