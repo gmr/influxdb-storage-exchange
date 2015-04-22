@@ -62,19 +62,7 @@ http://influxdb.org/docs/api/http.html
 
 Download
 --------
-To download the influxdb_storage_exchange plugin, select the appropriate file
-that matches the RabbitMQ version you are running:
-
-+---------+------------+----------+-----------------------+----------------------------------+
-| Version |  Released  | RabbitMQ | Short URL             | MD5 Hash                         |
-+=========+============+==========+=======================+==================================+
-|  0.1.1  | 2014-06-23 | v 3.3.x  | http://bit.ly/1j7UvXf | 212c0b5cbef3e385d736b5b52871fc1c |
-+---------+------------+----------+-----------------------+----------------------------------+
-
-The file is a zip file containing both the influxdb-storage-exchange plugin ez file
-and the ibrowse dependency ez file. Distributable zip files are committed in the
-binaries branch of this repository. Files are served via GitHub's RAW download
-functionality.
+Download the influxdb_storage_exchange plugin from the `Releases <https://github.com/aweber/influxdb-storage-exchange/releases>`_  page.
 
 Installation
 ------------
