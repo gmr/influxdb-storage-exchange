@@ -88,7 +88,7 @@ validate_binding(X, B) ->
 %% @end
 %%
 gen_server_call(Args) ->
-  case gen_server:call(redis_storage_worker, Args) of
+  case gen_server:call(influxdb_storage_worker, Args) of
     ok -> ok;
     {error, Reason} ->
       rabbit_misc:protocol_error(resource_error,

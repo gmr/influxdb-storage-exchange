@@ -11,6 +11,6 @@
          {password, "influxdb"},
          {user, "rabbitmq"},
          {mime_match, true}]},
-  {applications, [kernel, stdlib, ssl, rabbit, gun]}
+  {applications, [kernel, stdlib, rabbit, gun]}
  ]
 }.

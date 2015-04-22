@@ -7,7 +7,7 @@
 
 -behaviour(mirrored_supervisor).
 
--define(WORKER, indluxdb_storage_worker).
+-define(WORKER, influxdb_storage_worker).
 
 -rabbit_boot_step({?MODULE,
                    [{description, "InfluxDB Storage Exchange Supervisor"},
@@ -34,5 +34,5 @@ stop() ->
 init([]) ->
     {ok, {{one_for_one, 3, 10},
           [{?WORKER,
-           {gen_server, start_link, [{global, ?WORKER}, ?WORKER, [], []]},
-           permanent, ?MAX_WAIT, worker, [?WORKER]}]}}.
+            {gen_server, start_link, [{global, ?WORKER}, ?WORKER, [], []]},
+            permanent, ?MAX_WAIT, worker, [?WORKER]}]}}.

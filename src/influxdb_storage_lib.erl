@@ -13,18 +13,17 @@
 -include_lib("rabbit_common/include/rabbit.hrl").
 -include_lib("rabbit_common/include/rabbit_framing.hrl").
 
--export([post/2,
+-export([close/2,
+         process_message/3,
          validate/1]).
 
--export([build_json/3,
-         get_env/2,
-         get_param/3,
-         get_param_env_value/2,
-         get_param_list_value/1,
-         get_param_value/3,
-         get_payload/1,
+-export([build_path/2,
+         get_dbname/1,
+         get_host/1,
+         get_password/1,
          get_port/1,
-         get_url/2,
+         get_ssl/1,
+         get_user/1,
          validate_dbname/1,
          validate_host/1,
          validate_string_or_none/2,
@@ -34,39 +33,54 @@
          validate_port/1,
          validate_user/1]).
 
--define(DEFAULT_SCHEME,   "http").
+-define(DEFAULT_SSL,      false).
 -define(DEFAULT_HOST,     "localhost").
 -define(DEFAULT_PORT,     8086).
 -define(DEFAULT_USER,     "rabbitmq").
 -define(DEFAULT_PASSWORD, "influxdb").
 -define(DEFAULT_DBNAME,   "influxdb").
 
-post(X,
-     #delivery{message=#basic_message{routing_keys=Keys,
-                                      content=Content}}) ->
-  Key = list_to_binary(lists:append([binary_to_list(K) || K <- Keys])),
-  Properties = (Content#content.properties),
-  case Properties#'P_basic'.content_type of
-    <<"application/json">> ->
-      case build_json(Key, get_payload(Content), Properties#'P_basic'.timestamp) of
-        {ok, Payload} ->
-          case ibrowse:send_req(get_url(X, series),
-                                      [{"Content-type", "application/json"}],
-                                      post,
-                                      Payload,
-                                      [{max_sessions, 10},
-                                       {max_pipeline_size, 1}]) of
-            {ok, "200", _, _}   -> ok;
-            {ok, _, _, Content} -> {error, list_to_binary(Content)};
-            {error, Error}      -> {error, Error}
-          end;
-        {error, Error} ->
-          rabbit_error:log("influx_storage_exchange ignoring msg: ~p~n", [Error]),
-          ignored
-      end;
-    _ ->
-      ignored
+close(X, Conns) ->
+  io:format("X: ~p~n", [X]),
+  {ok, proplists:delete(X#exchange.name, Conns)}.
+
+process_message(X, _Delivery, Conns) ->
+  io:format("X: ~p~n", [X]),
+  {_Conn, NewConns} = get_connection(X, Conns),
+  {ok, NewConns}.
+
+get_connection(X, Conns) ->
+  io:format("Getting exchange: ~p", [X#exchange.name]),
+  case proplists:get_value(X#exchange.name, Conns) of
+    undefined ->
+      Host = get_param(X, host, ?DEFAULT_HOST),
+      Port = get_param(X, port, ?DEFAULT_PORT),
+      {ok, Conn} = gun:open(Host, Port),
+      {Conn, lists:merge(Conns, [{X#exchange.name, Conn}])};
+    Conn -> {Conn, Conns}
   end.
+
+build_path(X, Series) ->
+  "/db/" ++ get_dbname(X) ++ "/" ++ binary_to_list(Series)
+      ++ "?u=" ++ get_user(X) ++ "&p=" ++ get_password(X).
+
+get_dbname(X) ->
+  get_param(X, dbname, ?DEFAULT_DBNAME).
+
+get_host(X) ->
+  get_param(X, host, ?DEFAULT_HOST).
+
+get_password(X) ->
+  get_param(X, password, ?DEFAULT_PASSWORD).
+
+get_port(X) ->
+  list_to_integer(get_param(X, port, ?DEFAULT_PORT)).
+
+get_ssl(X) ->
+  list_to_atom(get_param(X, ssl, ?DEFAULT_SSL)).
+
+get_user(X) ->
+  get_param(X, user, ?DEFAULT_USER).
 
 %% @spec validate(X) -> Result
 %% @where
@@ -76,11 +90,13 @@ post(X,
 %% @end
 %%
 validate(X) ->
-  case  ibrowse:send_req(get_url(X, authenticate), [], get) of
-      {ok, "200", _, _  } -> ok;
-      {ok, _, _, Content} -> {error, list_to_binary(Content)};
-      {error, {Error, _}} -> {error, Error}
-  end.
+  io:format("X: ~p~n", [X]),
+  ok.
+%%  case  ibrowse:send_req(get_url(X, authenticate), [], get) of
+%%      {ok, "200", _, _  } -> ok;
+%%      {ok, _, _, Content} -> {error, list_to_binary(Content)};
+%%      {error, {Error, _}} -> {error, Error}
+%%  end.
 
 %% @spec validate_dbname(Value) -> Result
 %% @where
@@ -227,20 +243,20 @@ get_env(EnvVar, DefaultValue) ->
 %% finally by returning the passed in default value
 %% @end
 %%
-get_param(X, Name, DefaultValue) when is_atom(Name) ->
-  get_param(X, atom_to_list(Name), DefaultValue);
+get_param(X, Name, Default) when is_atom(Name) ->
+  io:format("get_param 1~n"),
+  get_param(X, atom_to_list(Name), Default);
 
-get_param(#exchange{arguments=Args, policy=Policy}, Name, DefaultValue) when Policy =:= undefined ->
-    get_param_value(Args, Name, DefaultValue);
+get_param(#exchange{arguments=Args, policy=Policy}, Name, Default) when Policy =:= undefined ->
+  io:format("get_param 2~n"),
+  get_param_value(Args, Name, Default);
 
-get_param(X=#exchange{arguments=Args}, Name, DefaultValue) when is_list(Name) ->
-  case rabbit_policy:get(list_to_binary("influxdb-" ++ Name), X) of
-    undefined -> get_param_value(Args, Name, DefaultValue);
-    Value     ->
-      case is_binary(Value) of
-        true  -> binary_to_list(Value);
-        false -> Value
-      end
+get_param(#exchange{arguments=Args, policy=Policy}, Name, Default) when Policy =/= undefined ->
+  Key = list_to_binary("influxdb-" ++ Name),
+  Definition = proplists:get_value(definition, Policy),
+  case proplists:get_value(Key, Definition) of
+    undefined -> get_param_value(Args, Name, Default);
+    Value -> to_list(Value)
   end.
 
 %% @private
@@ -263,12 +279,10 @@ get_param_env_value(Name, DefaultValue ) ->
 %% @doc Cast Value to a list if it is binary or an integer
 %% @end
 %%
-get_param_list_value(Value) when is_binary(Value) ->
-  binary_to_list(Value);
-get_param_list_value(Value) when is_integer(Value) ->
-  integer_to_list(Value);
-get_param_list_value(Value) when is_list(Value) ->
-  Value.
+to_list(Value) when is_atom(Value) -> atom_to_list(Value);
+to_list(Value) when is_binary(Value) -> binary_to_list(Value);
+to_list(Value) when is_integer(Value) -> integer_to_list(Value);
+to_list(Value) when is_list(Value) -> Value.
 
 %% @private
 %% @spec get_param_value(Args, Name, DefaultValue) -> Value
@@ -281,11 +295,13 @@ get_param_list_value(Value) when is_list(Value) ->
 %% in either Args or the config environment.
 %% @end
 %%
-get_param_value(Args, Name, DefaultValue) ->
-  case lists:keyfind(list_to_binary("x-" ++ Name), 1, Args) of
-    {_, _, V} -> get_param_list_value(V);
-            _ -> get_param_list_value(get_param_env_value(Name, DefaultValue))
-  end.
+get_param_value(Args, Name, Default) when is_list(Args) ->
+  case proplists:get_value(list_to_binary("x-" ++ Name), Args) of
+    undefined -> get_param_value(none, Name, Default);
+    Value -> to_list(Value)
+  end;
+get_param_value(_, Name, Default)  ->
+  to_list(get_param_env_value(Name, Default)).
 
 %% @private
 %% @spec get_payload(Value) -> list()
@@ -298,36 +314,6 @@ get_param_value(Args, Name, DefaultValue) ->
 %%
 get_payload(#content{payload_fragments_rev=Payload}) ->
   lists:append(lists:reverse([binary_to_list(V) || V <- Payload])).
-
-%% @private
-%% @spec get_port(Value) -> integer()
-%% @where
-%%       Value = list()|integer()|none
-%% @doc Return the value passed in as an integer if it is a list anf the value
-%% if it is an integer
-%% @end
-%%
-get_port(Value) when is_list(Value) -> list_to_integer(Value);
-get_port(Value) when is_number(Value) -> Value.
-
-%% @private
-%% @spec get_url(X, Type) -> list()
-%% @where
-%%       X    = rabbit_types:exchange()
-%%       Type = atom()
-%% @doc Return a properly formatted influxdb URL for the specified type
-%%      (authenticate, series, etc)
-%% @end
-%%
-get_url(X, Type) ->
-  Scheme   = get_param(X, "scheme", ?DEFAULT_SCHEME),
-  Host     = get_param(X, "host", ?DEFAULT_HOST),
-  Port     = get_port(get_param(X, "port", ?DEFAULT_PORT)),
-  User     = get_param(X, "user", ?DEFAULT_USER),
-  Password = get_param(X, "password", ?DEFAULT_PASSWORD),
-  DBName   = get_param(X, "dbname", ?DEFAULT_DBNAME),
-  Scheme ++ "://" ++ Host ++ ":" ++ integer_to_list(Port) ++ "/db/" ++ DBName
-    ++ "/" ++ atom_to_list(Type) ++ "?u=" ++ User ++ "&p=" ++ Password.
 
 %% @private
 %% @spec validate_string_or_none(Name, Value) -> Result
