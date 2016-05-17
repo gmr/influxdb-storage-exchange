@@ -3,6 +3,8 @@ InfluxDB Storage Exchange
 A RabbitMQ exchange type that stores messages that are routed through it as
 events in InfluxDB.
 
+:boom:**Important**:boom: This project is deprecated and no longer maintained.
+
 Details
 -------
 Messages that are routed through the influxdb_storage_exchange are examined to
